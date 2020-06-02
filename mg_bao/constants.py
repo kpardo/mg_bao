@@ -1,0 +1,5 @@
+'''
+constants used throughout project
+'''
+
+

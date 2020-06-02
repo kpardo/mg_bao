@@ -1,0 +1,10 @@
+doc/*
+lib/*
+results/*
+data/*
+mg_bao/notebooks/*
+mg_bao/old/*
+*/.ipynb_checkpoints/*
+*__pycache__/*
+*.DS_Store*
+*.ipynb
