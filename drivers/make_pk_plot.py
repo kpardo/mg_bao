@@ -20,7 +20,6 @@ def rerun_analysis():
 def make_plot():
     ## first load data
     print('making plot')
-    cambk, cambpkz0, cambpkz1100, cambpkz750 = np.loadtxt('../data/camb_pk.dat', usecols=(0,1,2,6),unpack=True)
     camb = pd.read_csv('../results/data_products/camb_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
