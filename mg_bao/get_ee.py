@@ -1,99 +1,60 @@
 ## import packages
 import numpy as np
-import sys, platform, os
-import matplotlib.pyplot as plt
-import seaborn as sns
 import astropy.units as u
 import astropy.constants as const
-from astropy.cosmology import FlatLambdaCDM
+import pandas as pd
 from scipy.stats import binned_statistic
+from datetime import datetime
 
-from mg_bao import *
+from mg_bao.constants import eta_star
+from mg_bao.convenience import prange
 
-## set plot settings
-sns.set_context("paper")
-sns.set_style('ticks')
-sns.set_palette('colorblind')
-figparams = {
-        'text.latex.preamble': [r'\usepackage{amsmath}'],
-        'text.usetex':True,
-        'axes.labelsize':20.,
-        'xtick.labelsize':16,
-        'ytick.labelsize':16,
-        'figure.figsize':[8., 6.],
-        'font.family':'DejaVu Sans',
-        'legend.fontsize':12}
-plt.rcParams.update(figparams)
-cs = plt.rcParams['axes.prop_cycle'].by_key()['color']
+def make_pkee():
+    ## load data
+    planckl, planckdl, lerr, herr = np.loadtxt('../data/planck_ps/COM_PowerSpect_CMB-EE-full_R3.01.txt', unpack=True)
+    actl, actcl, acterr = np.loadtxt('../data/act_ps/cl_cmb_ee.dat', unpack=True)
 
-## set cosmology to Planck 2018 Paper I Table 6
-cosmo = FlatLambdaCDM(H0=67.32, Om0=0.3158, Ob0=0.03324)
+    ## change planck data to cl from dl
+    planckcl = planckdl/(planckl*(planckl+1))*2*np.pi
+    lclerr = lerr/(planckl*(planckl+1))*2*np.pi
+    hclerr = herr/(planckl*(planckl+1))*2*np.pi
 
-## load data
-planckl, planckdl, lerr, herr = np.loadtxt('../data/planck_ps/COM_PowerSpect_CMB-EE-full_R3.01.txt', unpack=True)
-actl, actcl, acterr = np.loadtxt('../data/act_ps/cl_cmb_ee.dat', unpack=True)
+    ## mask data
+    planckl1, planckcl1 = mask_data(planckl, planckcl, lower=24, upper=2026)
+    __, lclerr1 = mask_data(planckl, lclerr, lower=24, upper=2026)
+    __, hclerr1 = mask_data(planckl, hclerr, lower=24, upper=2026)
+    actl1, actcl1 = mask_data(actl, actcl, upper=2001.)
+    __, acterr1 = mask_data(actl, acterr, upper=2001.)
 
-## change planck data to cl from dl
-planckcl = planckdl/(planckl*(planckl+1))*2*np.pi
-lclerr = lerr/(planckl*(planckl+1))*2*np.pi
-hclerr = herr/(planckl*(planckl+1))*2*np.pi
+    ## bin planck data so it has the same mid bin values as act data
+    bins = np.arange(25,np.max(actl1)+25, 50)
+    clbin, lbinedges, __ = binned_statistic(planckl1, planckcl1, bins=bins)
+    clupp, __, __ = binned_statistic(planckl1, planckcl1+hclerr1, bins=bins)
+    cldown, __, __ = binned_statistic(planckl1, planckcl1-lclerr1, bins=bins)
+    lbinmid = np.array([(a + b) /2 for a,b in zip(lbinedges[:-1], lbinedges[1:])])
 
-## mask data
-lmask1 = planckl < 2026.
-lmask2 = planckl > 24
-lmask = np.array(lmask1 & lmask2)
-planckcl = planckcl[lmask]
-planckl = planckl[lmask]
-hclerr = hclerr[lmask]
-lclerr = lclerr[lmask]
-actlmask = actl < 2001.
-actcl = actcl[actlmask]
-acterr = acterr[actlmask]
-actl = actl[actlmask]
+    ## average data  where they overlap.
+    newlmask = lbinmid >= np.min(actl1)
+    cls = clbin[~newlmask]
+    cls = np.append(cls, (clbin[newlmask] + actcl1[:-1])/2.)
+    cl_upp = clupp[~newlmask]
+    cl_upp = np.append(cl_upp, (clupp[newlmask]+actcl1[:-1]+acterr1[:-1])/2.)
+    cl_down = cldown[~newlmask]
+    cl_down = np.append(cl_down, (cldown[newlmask]+ actcl1[:-1] - acterr1[:-1])/2.)
 
-## bin planck data so it has the same mid bin values as act data
-bins = np.arange(25,np.max(actl)+25, 50)
-clbin, lbinedges, __ = binned_statistic(planckl, planckcl, bins=bins)
-clupp, __, __ = binned_statistic(planckl, planckcl+hclerr, bins=bins)
-cldown, __, __ = binned_statistic(planckl, planckcl-lclerr, bins=bins)
-lbinmid = np.array([(a + b) /2 for a,b in zip(lbinedges[:-1], lbinedges[1:])])
+    ## convert to pk and ks
+    planckk = (lbinmid+0.5)/(eta_star)
+    pkee = cls*lbinmid**2/planckk**3*np.pi
+    pkee_u = cl_upp*lbinmid**2/planckk**3*np.pi
+    pkee_l = cl_down*lbinmid**2/planckk**3*np.pi
 
-## combine data via quadrature where they overlap.
-newlmask = lbinmid >= np.min(actl)
-cls = clbin[~newlmask]
-cls = np.append(cls, (clbin[newlmask] + actcl[:-1])/2.)
-cl_upp = clupp[~newlmask]
-cl_upp = np.append(cl_upp, (clupp[newlmask]+actcl[:-1]+acterr[:-1])/2.)
-cl_down = cldown[~newlmask]
-cl_down = np.append(cl_down, (cldown[newlmask]+ actcl[:-1] - acterr[:-1])/2.)
+    ## print to file
+    results = np.array([planckk, pkee, pkee_u, pkee_l]).T
+    table = pd.DataFrame(results, columns=['k', 'pkee', 'pkee_u', 'pkee_l'])
+    filepath = '../results/data_products/pkee.dat'
+    table.to_csv(filepath, index=False)
+    print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 
-## convert to pk and ks
-# eta_star = cosmo.comoving_distance(1100).value
-eta_star = cosmo.comoving_distance(1059.94).value ## z_drag from Planck 2018 cosmology paper Table 2, all Planck alone
-planckk = (lbinmid+0.5)/(eta_star)
-pkee = cls*lbinmid**2/planckk**3*np.pi
-pkee_u = cl_upp*lbinmid**2/planckk**3*np.pi
-pkee_l = cl_down*lbinmid**2/planckk**3*np.pi
-
-## print to file
-results = np.array([planckk, pkee, pkee_u, pkee_l]).T
-np.savetxt('../results/data/pk_ee.dat', results)
-
-## check by making figures
-plt.figure()
-plt.errorbar(planckl[::5], planckcl[::5], yerr=[lclerr[::5], hclerr[::5]],fmt='o', c=cs[0], label=r'Planck Cls')
-plt.errorbar(actl, actcl, yerr=acterr, c=cs[1],fmt='o',label=r'ACT Cls')
-plt.errorbar(lbinmid, cls, yerr=[cls-cl_down, cl_upp-cls],fmt='o', c='black', label=r'Combined', zorder=3)
-plt.yscale('log')
-plt.legend()
-plt.xlabel(r'$l$')
-plt.ylabel(r'$C_l$')
-plt.tight_layout()
-plt.savefig('../results/planck_cls.png')
-
-plt.figure()
-plt.errorbar(planckk, pkee, yerr=[pkee-pkee_l, pkee_u-pkee], fmt='o', color='black')
-plt.yscale('log')
-plt.xlabel(r'$k~[\rm{Mpc}^{-1}]$')
-plt.ylabel(r'$P_{EE}(k)~[\rm{Mpc}^3]$');
-plt.savefig('../results/planck_pkee.png')
+def mask_data(ls, data, lower=0, upper=None):
+    lmask = (lower < ls) & (ls < upper)
+    return ls[lmask], data[lmask]
