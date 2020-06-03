@@ -70,13 +70,7 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
     plt.ylabel(r'$P_{bb}(k)~[\rm{Mpc}^3]$');
     savefig(f, figpath)
 
-def tk_plot():
-    ## load data
-    ks, tk = np.loadtxt('../results/transfer.dat')
-    cambk, cambpkz0, cambpkz1100, cambkt, camb_tk, primordialpk = np.loadtxt('../data/camb_pk.dat', unpack=True)
-    camb_pkdiv = cambpkz0/cambpkz1100
-
-    ## make plot
+def tk_plot(ks, tk, cambk, camb_pkdiv, filepath):
     cs = paper_plot()
     norm = 1./tk[0] ##first non-zero sdss spline value
     cambnorm = 1.e-7
@@ -90,6 +84,14 @@ def tk_plot():
     plt.ylim([1e-1, 1e5])
     plt.xlabel(r'$k~[\rm{Mpc}^{-1}]$')
     plt.ylabel(r'$T^2(k)$');
-    plt.tight_layout();
-    filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/transfer.png'
+    savefig(f, filepath)
+
+def greens_plot(rs, Gr, filepath):
+    Gr = Gr/Gr[0] ## normalize to 1
+    cs = paper_plot()
+    f = plt.figure()
+    plt.plot(rs, Gr, c='black', label='Data')
+    plt.legend()
+    plt.xlabel(r'$r~[\rm{Mpc}]$')
+    plt.ylabel(r'$\mathcal{G}(r)$')
     savefig(f, filepath)
