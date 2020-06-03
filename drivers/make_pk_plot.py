@@ -13,6 +13,7 @@ from mg_bao.constants import boss_h, RERUN_ANALYSIS
 
 
 def rerun_analysis():
+    print('re-doing analysis')
     make_pkee()
     get_camb_spectra()
     get_pbb()
