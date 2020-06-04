@@ -8,27 +8,27 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
+from scipy.ndimage import gaussian_filter1d
 from datetime import datetime
 
 from mg_bao.constants import *
 from mg_bao.convenience import *
 
-def paper_plot():
-    sns.set_context("paper")
-    sns.set_style('ticks')
-    sns.set_palette('colorblind')
-    figparams = {
-            'text.latex.preamble': [r'\usepackage{amsmath}'],
-            'text.usetex':True,
-            'axes.labelsize':20.,
-            'xtick.labelsize':16,
-            'ytick.labelsize':16,
-            'figure.figsize':[14., 12.],
-            'font.family':'DejaVu Sans',
-            'legend.fontsize':12}
-    plt.rcParams.update(figparams)
-    cs = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    return cs
+## set fig params
+sns.set_context("paper")
+sns.set_style('ticks')
+sns.set_palette('colorblind')
+figparams = {
+        'text.latex.preamble': [r'\usepackage{amsmath}'],
+        'text.usetex':True,
+        'axes.labelsize':20.,
+        'xtick.labelsize':16,
+        'ytick.labelsize':16,
+        'figure.figsize':[10., 8.],
+        'font.family':'DejaVu Sans',
+        'legend.fontsize':18}
+plt.rcParams.update(figparams)
+cs = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 def savefig(fig, figpath, writepdf=False, dpi=450):
     ## stolen from luke
@@ -47,10 +47,6 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
     '''
     makes power spectrum plot
     '''
-
-
-    ## now make plot
-    cs = paper_plot()
     dimvalue = 5.e-8 # random number that scales down Pk,z=1100 from data
     upvalue = 3.e5 # random number that scales up camb Pk, z=1100`
     f = plt.figure()
@@ -59,8 +55,8 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
             yerr=np.array(pkz1100yerr)[:, 6:]*dimvalue, fmt='o',
                  c='black', mfc='white', label=r'$P_{bb}(k, z=1100)$')
     plt.axvline(lstar/eta_star, linestyle='dashed', color='black', linewidth=3)
-    plt.plot(cambk, cambpkz0, color=cs[1], linestyle='dotted')
-    plt.plot(cambk, cambpkz1100*upvalue, color=cs[1], linestyle='dotted', label='CAMB, z=1100')
+    plt.plot(cambk, cambpkz0, color=cs[0],linewidth=2, linestyle='dotted')
+    plt.plot(cambk, cambpkz1100*upvalue, color=cs[0], linewidth=2, linestyle='dotted', label='CAMB, z=1100')
     plt.yscale('log')
     plt.xscale('log')
     plt.ylim([2e-3, 1e5])
@@ -68,15 +64,14 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
     plt.legend(fontsize=12, loc='lower left')
     plt.xlabel(r'$k~[\rm{Mpc}^{-1}]$')
     plt.ylabel(r'$P_{bb}(k)~[\rm{Mpc}^3]$');
-    savefig(f, figpath)
+    savefig(f, figpath, writepdf=True)
 
 def tk_plot(ks, tk, cambk, camb_pkdiv, filepath):
-    cs = paper_plot()
     norm = 1./tk[0] ##first non-zero sdss spline value
     cambnorm = 1.e-7
     f = plt.figure()
-    plt.plot(ks, tk*norm, c='black', label='Data')
-    plt.plot(cambk, camb_pkdiv*cambnorm, color=cs[1],linestyle='dotted',label='CAMB')
+    plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data')
+    plt.plot(cambk, camb_pkdiv*cambnorm, color=cs[0],linewidth=2, linestyle='dotted',label='CAMB')
     plt.axvline(lstar/eta_star, linestyle='dashed', color='black', linewidth=3)
     plt.legend()
     plt.yscale('log')
@@ -84,14 +79,15 @@ def tk_plot(ks, tk, cambk, camb_pkdiv, filepath):
     plt.ylim([1e-1, 1e5])
     plt.xlabel(r'$k~[\rm{Mpc}^{-1}]$')
     plt.ylabel(r'$T^2(k)$');
-    savefig(f, filepath)
+    savefig(f, filepath, writepdf=True)
 
-def greens_plot(rs, Gr, filepath):
-    Gr = Gr/Gr[0] ## normalize to 1
-    cs = paper_plot()
+def greens_plot(rs, Gr,rs2, Gr2, filepath):
+    Gr = gaussian_filter1d(Gr/Gr[0], 1) ## normalize to 1 at small scales and smooth
+    Gr2 = gaussian_filter1d(Gr2/Gr2[0], 1)
     f = plt.figure()
-    plt.plot(rs, Gr, c='black', label='Data')
+    plt.plot(rs, Gr, c='black', linewidth=2, label='Zero Extrapolation')
+    plt.plot(rs2, Gr2, c='black', linewidth=2, linestyle='dotted', label='Constant Value Extrapolation')
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
     plt.ylabel(r'$\mathcal{G}(r)$')
-    savefig(f, filepath)
+    savefig(f, filepath, writepdf=True)

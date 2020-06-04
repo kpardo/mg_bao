@@ -22,18 +22,22 @@ def rerun_analysis():
     get_camb_spectra()
     get_pbb()
     make_tk()
-    make_greens()
+    make_greens(ext='zeros')
+    make_greens(ext='const')
 
 def make_plot():
     ## first load data
     print('making plot')
-    greens= pd.read_csv('../results/data_products/greens.dat')
+    greens= pd.read_csv('../results/data_products/greens_zeros.dat')
     r = greens['r']
     Gr = greens['Gr']
+    greens2 = pd.read_csv('../results/data_products/greens_const.dat')
+    r2 = greens2['r']
+    Gr2 = greens2['Gr']
 
     ## make figure
     filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/greens.png'
-    greens_plot(r, Gr, filepath)
+    greens_plot(r, Gr, r2, Gr2, filepath)
 
 
 def main():

@@ -5,9 +5,11 @@ import astropy.constants as const
 import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from datetime import datetime
-from hankel import SymmetricFourierTransform
+from hankel import SymmetricFourierTransform, get_h
 
 from mg_bao.constants import *
+from mg_bao.convenience import *
+
 ## TODO: add errorbars to this analysis.
 def import_powerspectra():
     ## import all powerspectra
@@ -55,24 +57,30 @@ def create_r_array(ks):
     r = np.linspace(xmin, xmax, numx)
     return r
 
-def make_greens():
+def make_greens(ext='zeros'):
     ## get powerspectra to create spline again
     planckk, pk_z1100, sdssk, sdsspk  = import_powerspectra()
     ## create spline for tk
     sdss_spline = UnivariateSpline(sdssk, sdsspk, s=0., ext='zeros')
     ## use log10 of planckpk for spline because of large fluctuations
-    log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=1., ext='zeros')
+    log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=0., ext='zeros')
     ks = np.linspace((lstar+0.5)/eta_star, np.max(sdssk), 1000)
     tk = UnivariateSpline(ks,
             np.sqrt(sdss_spline(ks)/10**log10planck_spline(ks)),s=0.,
-            ext='zeros')
+            ext=ext)
     ## do the fourier transform with the help of Hankel
-    ft = SymmetricFourierTransform(ndim=3, N = 200, h = 0.03)
-    r = create_r_array(ks)
+    ## first create the r array using sdss k -- more conservative
+    r = create_r_array(sdssk)
+    ## find optimal parameters for hankel to use
+    deltah, err, N = get_h(tk, nu=3, K=[np.min(r), np.max(r)],cls=SymmetricFourierTransform, inverse=True)
+    if np.any(np.abs(err) > 1.e-2):
+        print(err)
+        print("The error on the FT is high (> 1\%). You should check this!")
+    ft = SymmetricFourierTransform(ndim=3, N = N, h = deltah)
     Gr = ft.transform(tk,r, ret_err=False, inverse=True)
     ## save data
     results = np.array([r, Gr]).T
     table = pd.DataFrame(results, columns=['r', 'Gr'])
-    filepath = '../results/data_products/greens.dat'
+    filepath = '../results/data_products/greens_'+ext+'.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
