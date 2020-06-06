@@ -10,6 +10,7 @@ from mg_bao.camb_pk import get_camb_spectra
 from mg_bao.find_pbb import get_pbb
 from mg_bao.plotting import pk_plot
 from mg_bao.constants import boss_h, RERUN_ANALYSIS
+from mg_bao.convenience import prange
 
 
 def rerun_analysis():
@@ -35,6 +36,8 @@ def make_plot():
     pk_z1100 = planck['pbz1100'].to_numpy()
     pk_z1100_u = planck['pbz1100_u'].to_numpy()
     pk_z1100_l = planck['pbz1100_l'].to_numpy()
+    prange(sdssk)
+    prange(planckk)
 
     pk1100_lerr = pk_z1100 - pk_z1100_l
     pk1100_uerr = pk_z1100_u - pk_z1100

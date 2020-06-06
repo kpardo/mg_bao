@@ -66,11 +66,14 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
     plt.ylabel(r'$P_{bb}(k)~[\rm{Mpc}^3]$');
     savefig(f, figpath, writepdf=True)
 
-def tk_plot(ks, tk, cambk, camb_pkdiv, filepath):
+def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     norm = 1./tk[0] ##first non-zero sdss spline value
     cambnorm = 1.e-7
     f = plt.figure()
     plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data')
+    plt.fill_between(ks, np.minimum(tk_l*norm, tk_u*norm),
+            np.maximum(tk_u*norm, tk_l*norm), color='black', alpha=0.3,
+            interpolate=True)
     plt.plot(cambk, camb_pkdiv*cambnorm, color=cs[0],linewidth=2, linestyle='dotted',label='CAMB')
     plt.axvline(lstar/eta_star, linestyle='dashed', color='black', linewidth=3)
     plt.legend()

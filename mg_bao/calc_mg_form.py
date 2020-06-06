@@ -11,7 +11,7 @@ from mg_bao.constants import *
 from mg_bao.convenience import *
 
 ## TODO: add errorbars to this analysis.
-def import_powerspectra():
+def import_powerspectra(lerr = False, uerr = False):
     ## import all powerspectra
     cambk, cambpkz0, cambpkz1100, cambpkz750 = np.loadtxt('../data/camb_pk.dat', usecols=(0,1,2,6),unpack=True)
     camb = pd.read_csv('../results/data_products/camb_pk.dat')
@@ -22,28 +22,44 @@ def import_powerspectra():
     sdssk, __, sdsspk, sdsspk_err  = np.loadtxt('../data/Beutler_2016_BAO/Beutleretal_pk_monopole_DR12_NGC_z1_postrecon_120.dat', unpack=True)
     sdssk *= boss_h
     sdsspk *= boss_h
+    sdsspk *= sdsspk_err
 
     planck = pd.read_csv('../results/data_products/pb_z1100.dat')
     planckk = planck['k'].to_numpy()
     pk_z1100 = planck['pbz1100'].to_numpy()
     pk_z1100_u = planck['pbz1100_u'].to_numpy()
     pk_z1100_l = planck['pbz1100_l'].to_numpy()
+
+    if lerr:
+        return planckk, pk_z1100_l, sdssk, sdsspk-sdsspk_err
+
+    if uerr:
+        return planckk, pk_z1100_u, sdssk, sdsspk+sdsspk_err
     return planckk, pk_z1100, sdssk, sdsspk
 
 def make_splines( planckk, pk_z1100, sdssk, sdsspk):
     sdss_spline = UnivariateSpline(sdssk, sdsspk, s=0., ext='zeros')
     ## use log10 of planckpk for spline because of large fluctuations
-    log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=1., ext='zeros')
+    log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=0., ext='zeros')
     return sdss_spline, log10planck_spline
 
 def make_tk():
     planckk, pk_z1100, sdssk, sdsspk  = import_powerspectra()
     sdss_spline, log10planck_spline = make_splines(planckk, pk_z1100, sdssk,
             sdsspk)
+    planckk, pk_z1100_u, sdssk, sdsspk_u = import_powerspectra(uerr=True)
+    pk_z1100_u[pk_z1100_u == 0] = 1.e-32 ## make it some tiny number so no nan.
+    sdss_spline_u, log10planck_spline_u = make_splines(planckk, pk_z1100_u,
+            sdssk, sdsspk_u)
+    planckk, pk_z1100_l, sdssk, sdsspk_l = import_powerspectra(lerr=True)
+    sdss_spline_l, log10planck_spline_l = make_splines(planckk, pk_z1100_l,
+            sdssk, sdsspk_l)
     ks = np.linspace((lstar+0.5)/eta_star, np.max(sdssk), 1000)
     tk = sdss_spline(ks)/10**log10planck_spline(ks)
-    results = np.array([ks, tk]).T
-    table = pd.DataFrame(results, columns=['k', 'Tk'])
+    tk_l = sdss_spline_l(ks)/10**log10planck_spline_l(ks)
+    tk_u = sdss_spline_u(ks)/10**log10planck_spline_u(ks)
+    results = np.array([ks, tk, tk_l, tk_u]).T
+    table = pd.DataFrame(results, columns=['k', 'Tk', 'Tk_l', 'Tk_u'])
     filepath = '../results/data_products/transfer.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))

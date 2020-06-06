@@ -35,10 +35,12 @@ def make_plot():
     tkdat = pd.read_csv('../results/data_products/transfer.dat')
     k = tkdat['k']
     tk = tkdat['Tk']
+    tk_l = tkdat['Tk_l']
+    tk_u = tkdat['Tk_u']
 
     ## make figure
     filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/transfer.png'
-    tk_plot(k, tk,  cambk, cambpkdiv, filepath)
+    tk_plot(k, tk, tk_l, tk_u, cambk, cambpkdiv, filepath)
 
 
 def main():
