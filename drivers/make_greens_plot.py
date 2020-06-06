@@ -31,13 +31,17 @@ def make_plot():
     greens= pd.read_csv('../results/data_products/greens_zeros.dat')
     r = greens['r']
     Gr = greens['Gr']
+    Gr_l = greens['Gr_l']
+    Gr_u = greens['Gr_u']
     greens2 = pd.read_csv('../results/data_products/greens_const.dat')
     r2 = greens2['r']
     Gr2 = greens2['Gr']
+    Gr2_l = greens2['Gr_l']
+    Gr2_u = greens2['Gr_u']
 
     ## make figure
     filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/greens.png'
-    greens_plot(r, Gr, r2, Gr2, filepath)
+    greens_plot(r, Gr, Gr_l, Gr_u, r2, Gr2, Gr2_l, Gr2_u, filepath)
 
 
 def main():

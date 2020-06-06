@@ -84,12 +84,28 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     plt.ylabel(r'$T^2(k)$');
     savefig(f, filepath, writepdf=True)
 
-def greens_plot(rs, Gr,rs2, Gr2, filepath):
-    Gr = gaussian_filter1d(Gr/Gr[0], 1) ## normalize to 1 at small scales and smooth
-    Gr2 = gaussian_filter1d(Gr2/Gr2[0], 1)
+def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, filepath):
+    Gr = gaussian_filter1d(Gr, 2) ## normalize to 1 at small scales and smooth
+    Gr_l = gaussian_filter1d(Gr_l, 2)
+    Gr_u = gaussian_filter1d(Gr_u, 2)
+    norm = 1./Gr[0]
+    print(Gr2[0])
+    print(Gr2_l[0])
+    print(Gr2_u[0])
+    Gr2 = gaussian_filter1d(Gr2, 1)
+    Gr2_l = gaussian_filter1d(Gr2_l, 1)
+    Gr2_u = gaussian_filter1d(Gr2_u, 1)
+#    norm2 = 1./np.abs(Gr2[0])
+    norm2 = 1./Gr2[0]
     f = plt.figure()
-    plt.plot(rs, Gr, c='black', linewidth=2, label='Zero Extrapolation')
-    plt.plot(rs2, Gr2, c='black', linewidth=2, linestyle='dotted', label='Constant Value Extrapolation')
+    plt.plot(rs, Gr*norm, c='black', linewidth=2, label='Zero Extrapolation')
+    plt.fill_between(rs, Gr_l*norm, Gr_u*norm, color='black', alpha=0.1)
+    plt.plot(rs2, Gr2*norm2, c=cs[0], linewidth=2, linestyle='dotted', label='Constant Value Extrapolation')
+    plt.fill_between(rs2, Gr2_l*norm2, Gr2_u*norm2, color=cs[0], alpha=0.1)
+    plt.legend()
+    plt.xlabel(r'$r~[\rm{Mpc}]$')
+    plt.ylabel(r'$\mathcal{G}(r)$')
+
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
     plt.ylabel(r'$\mathcal{G}(r)$')
