@@ -11,7 +11,7 @@ from mg_bao.constants import *
 from mg_bao.convenience import *
 
 ## TODO: add errorbars to this analysis.
-def import_powerspectra(lerr = False, uerr = False):
+def import_powerspectra(lerr = False, uerr = False, err=False):
     ## import all powerspectra
     cambk, cambpkz0, cambpkz1100, cambpkz750 = np.loadtxt('../data/camb_pk.dat', usecols=(0,1,2,6),unpack=True)
     camb = pd.read_csv('../results/data_products/camb_pk.dat')
@@ -22,7 +22,7 @@ def import_powerspectra(lerr = False, uerr = False):
     sdssk, __, sdsspk, sdsspk_err  = np.loadtxt('../data/Beutler_2016_BAO/Beutleretal_pk_monopole_DR12_NGC_z1_postrecon_120.dat', unpack=True)
     sdssk *= boss_h
     sdsspk *= boss_h
-    sdsspk *= sdsspk_err
+    sdsspk_err *= boss_h
 
     planck = pd.read_csv('../results/data_products/pb_z1100.dat')
     planckk = planck['k'].to_numpy()
@@ -31,10 +31,12 @@ def import_powerspectra(lerr = False, uerr = False):
     pk_z1100_l = planck['pbz1100_l'].to_numpy()
 
     if lerr:
-        return planckk, pk_z1100_l, sdssk, sdsspk-sdsspk_err
+        return planckk, pk_z1100_l, sdssk, sdsspk - sdsspk_err
 
     if uerr:
-        return planckk, pk_z1100_u, sdssk, sdsspk+sdsspk_err
+        return planckk, pk_z1100_u, sdssk, sdsspk + sdsspk_err
+    if err:
+        return planckk, pk_z1100, sdssk, sdsspk, sdsspk_err
     return planckk, pk_z1100, sdssk, sdsspk
 
 def make_splines( planckk, pk_z1100, sdssk, sdsspk):
@@ -43,8 +45,27 @@ def make_splines( planckk, pk_z1100, sdssk, sdsspk):
     log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=0., ext='zeros')
     return sdss_spline, log10planck_spline
 
+def get_tk_err(ks, pk, sdsspk, pk_u, pk_l, sdsserr):
+    ## first get arrays from splines
+    tk = sdsspk(ks)/10**(pk(ks))
+    puerr = 10**(pk_u(ks)) -10**(pk(ks))
+    plerr = 10**(pk(ks))-10**(pk_l(ks))
+    uerr = err_div(tk, 10**(pk(ks)), sdsspk(ks), puerr, sdsserr(ks))
+    lerr = err_div(tk,10**(pk(ks)), sdsspk(ks), plerr, sdsserr(ks))
+    return tk+uerr, tk-lerr
+
+def err_div(f, a,b,siga, sigb):
+    '''
+    calculates error for division of two variables
+    assumes they are independent
+    '''
+    aterm = (siga/a)**2
+    bterm = (sigb/b)**2
+    return np.abs(f)*np.sqrt(aterm + bterm)
+
 def make_tk():
-    planckk, pk_z1100, sdssk, sdsspk  = import_powerspectra()
+    planckk, pk_z1100, sdssk, sdsspk, sdsserr  = import_powerspectra(err=True)
+    sdsserr_spline = UnivariateSpline(sdssk, sdsserr, s=0., ext='zeros')
     sdss_spline, log10planck_spline = make_splines(planckk, pk_z1100, sdssk,
             sdsspk)
     planckk, pk_z1100_u, sdssk, sdsspk_u = import_powerspectra(uerr=True)
@@ -56,8 +77,8 @@ def make_tk():
             sdssk, sdsspk_l)
     ks = np.linspace((lstar+0.5)/eta_star, np.max(sdssk), 1000)
     tk = sdss_spline(ks)/10**log10planck_spline(ks)
-    tk_l = sdss_spline_l(ks)/10**log10planck_spline_l(ks)
-    tk_u = sdss_spline_u(ks)/10**log10planck_spline_u(ks)
+    tk_u, tk_l = get_tk_err(ks,log10planck_spline, sdss_spline,
+            log10planck_spline_u, log10planck_spline_l, sdsserr_spline)
     results = np.array([ks, tk, tk_l, tk_u]).T
     table = pd.DataFrame(results, columns=['k', 'Tk', 'Tk_l', 'Tk_u'])
     filepath = '../results/data_products/transfer.dat'
