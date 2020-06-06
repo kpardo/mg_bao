@@ -56,7 +56,8 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
                  c='black', mfc='white', label=r'$P_{bb}(k, z=1100)$')
     plt.axvline(lstar/eta_star, linestyle='dashed', color='black', linewidth=3)
     plt.plot(cambk, cambpkz0, color=cs[0],linewidth=2, linestyle='dotted')
-    plt.plot(cambk, cambpkz1100*upvalue, color=cs[0], linewidth=2, linestyle='dotted', label='CAMB, z=1100')
+    plt.plot(cambk, cambpkz1100*upvalue, color=cs[0], linewidth=2,
+    linestyle='dotted', label='CAMB')
     plt.yscale('log')
     plt.xscale('log')
     plt.ylim([2e-3, 1e5])
@@ -72,7 +73,7 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     f = plt.figure()
     plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data')
     plt.fill_between(ks, tk_l*norm,
-            tk_u*norm, color='black', alpha=0.3,
+            tk_u*norm, color='black', alpha=0.1,
             interpolate=True)
     plt.plot(cambk, camb_pkdiv*cambnorm, color=cs[0],linewidth=2, linestyle='dotted',label='CAMB')
     plt.axvline(lstar/eta_star, linestyle='dashed', color='black', linewidth=3)
@@ -84,27 +85,27 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     plt.ylabel(r'$T^2(k)$');
     savefig(f, filepath, writepdf=True)
 
-def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, filepath):
-    Gr = gaussian_filter1d(Gr, 2) ## normalize to 1 at small scales and smooth
+def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath):
+    Gr = gaussian_filter1d(Gr, 2) ## smooth
     Gr_l = gaussian_filter1d(Gr_l, 2)
     Gr_u = gaussian_filter1d(Gr_u, 2)
     norm = 1./Gr[0]
-    print(Gr2[0])
-    print(Gr2_l[0])
-    print(Gr2_u[0])
     Gr2 = gaussian_filter1d(Gr2, 1)
     Gr2_l = gaussian_filter1d(Gr2_l, 1)
     Gr2_u = gaussian_filter1d(Gr2_u, 1)
-#    norm2 = 1./np.abs(Gr2[0])
     norm2 = 1./Gr2[0]
     f = plt.figure()
-    plt.plot(rs, Gr*norm, c='black', linewidth=2, label='Zero Extrapolation')
-    plt.fill_between(rs, Gr_l*norm, Gr_u*norm, color='black', alpha=0.1)
-    plt.plot(rs2, Gr2*norm2, c=cs[0], linewidth=2, linestyle='dotted', label='Constant Value Extrapolation')
-    plt.fill_between(rs2, Gr2_l*norm2, Gr2_u*norm2, color=cs[0], alpha=0.1)
+    plt.plot(rs, Gr*norm, c='black', linewidth=2, label='Data - no extrapolation')
+    #plt.fill_between(rs, Gr_l/Gr_l[0], Gr_u/Gr_u[0], color='black', alpha=0.1)
+    plt.plot(rs2, Gr2*norm2, c='black', linewidth=2, linestyle='dotted',
+            label='Data - constant value extrapolation')
+    plt.plot(cambr, cambgr/cambgr[0], c=cs[0], linewidth=2, linestyle='dotted', label='CAMB - DM only')
+    #plt.fill_between(rs2, Gr2_l*norm2, Gr2_u*norm2, color=cs[0], alpha=0.1)
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
     plt.ylabel(r'$\mathcal{G}(r)$')
+    plt.ylim([-0.3, 1.1])
+    plt.xlim([0., 300.])
 
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')

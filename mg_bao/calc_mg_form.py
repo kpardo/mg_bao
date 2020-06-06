@@ -10,10 +10,8 @@ from hankel import SymmetricFourierTransform, get_h
 from mg_bao.constants import *
 from mg_bao.convenience import *
 
-## TODO: add errorbars to this analysis.
 def import_powerspectra(lerr = False, uerr = False, err=False):
     ## import all powerspectra
-    cambk, cambpkz0, cambpkz1100, cambpkz750 = np.loadtxt('../data/camb_pk.dat', usecols=(0,1,2,6),unpack=True)
     camb = pd.read_csv('../results/data_products/camb_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
@@ -96,7 +94,7 @@ def create_r_array(ks):
 
 def make_greens(ext='zeros'):
     ## get powerspectra to create spline again
-    planckk, pk_z1100, sdssk, sdsspk  = import_powerspectra()
+    planckk, pk_z1100, sdssk, sdsspk, sdsserr  = import_powerspectra(err=True)
     __, pk_z1100_l, ___, sdsspk_l  = import_powerspectra(lerr=True)
     __, pk_z1100_u, ___, sdsspk_u  = import_powerspectra(uerr=True)
     pk_z1100_u[pk_z1100_u == 0] = 1.e-32 ## make it some tiny number so no nan.
@@ -104,6 +102,7 @@ def make_greens(ext='zeros'):
     sdss_spline = UnivariateSpline(sdssk, sdsspk, s=0., ext='zeros')
     sdss_spline_l = UnivariateSpline(sdssk, sdsspk_l, s=0., ext='zeros')
     sdss_spline_u = UnivariateSpline(sdssk, sdsspk_u, s=0., ext='zeros')
+    sdsserr_spline = UnivariateSpline(sdssk, sdsserr, s=0., ext='zeros')
     ## use log10 of planckpk for spline because of large fluctuations
     log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=0., ext='zeros')
     log10planck_spline_l = UnivariateSpline(planckk, np.log10(pk_z1100_l), s=0., ext='zeros')
@@ -112,12 +111,10 @@ def make_greens(ext='zeros'):
     tk = UnivariateSpline(ks,
             np.sqrt(sdss_spline(ks)/10**log10planck_spline(ks)),s=0.,
             ext=ext)
-    tk_l = UnivariateSpline(ks,
-            np.sqrt(sdss_spline_l(ks)/10**log10planck_spline_l(ks)),s=0.,
-            ext=ext)
-    tk_u = UnivariateSpline(ks,
-            np.sqrt(sdss_spline_u(ks)/10**log10planck_spline_u(ks)),s=0.,
-            ext=ext)
+    tk_u_arr, tk_l_arr = get_tk_err(ks,log10planck_spline, sdss_spline,
+            log10planck_spline_u, log10planck_spline_l, sdsserr_spline)
+    tk_u = UnivariateSpline(ks, tk_u_arr, s=0., ext=ext)
+    tk_l = UnivariateSpline(ks, tk_l_arr, s=0., ext=ext)
     ## do the fourier transform with the help of Hankel
     ## first create the r array using sdss k -- more conservative
     r = create_r_array(sdssk)
@@ -130,9 +127,29 @@ def make_greens(ext='zeros'):
     Gr = ft.transform(tk,r, ret_err=False, inverse=True)
     Gr_l = ft.transform(tk_l,r, ret_err=False, inverse=True)
     Gr_u = ft.transform(tk_u,r, ret_err=False, inverse=True)
+
+    ## get CAMB green's function
+    camb = pd.read_csv('../results/data_products/cambdm_pk.dat')
+    cambk = camb['k'].to_numpy()
+    cambpkz0 = camb['pkz0'].to_numpy()
+    cambpkz1100 = camb['pkz1100'].to_numpy()
+    cambpkdiv = cambpkz0/cambpkz1100
+    cambtk = UnivariateSpline(cambk, cambpkdiv, s=0., ext='zeros')
+    cambr = create_r_array(cambk)
+    ft = SymmetricFourierTransform(ndim=3, N = 500, h = 0.01)
+    cambGr = ft.transform(cambtk,cambr, ret_err=False, inverse=True)
+
+
     ## save data
     results = np.array([r, Gr, Gr_l, Gr_u]).T
     table = pd.DataFrame(results, columns=['r', 'Gr', 'Gr_l', 'Gr_u'])
     filepath = '../results/data_products/greens_'+ext+'.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
+
+    results2 = np.array([cambr, cambGr]).T
+    table = pd.DataFrame(results2, columns=['r','Gr']) 
+    filepath = '../results/data_products/cambgreens.dat'
+    table.to_csv(filepath, index=False)
+    print('{}: made {}'.format(datetime.now().isoformat(), filepath))
+

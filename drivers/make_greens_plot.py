@@ -39,9 +39,12 @@ def make_plot():
     Gr2_l = greens2['Gr_l']
     Gr2_u = greens2['Gr_u']
 
+    cambgreens = pd.read_csv('../results/data_products/cambgreens.dat')
+    cambr = cambgreens['r']
+    cambgr = cambgreens['Gr']
     ## make figure
     filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/greens.png'
-    greens_plot(r, Gr, Gr_l, Gr_u, r2, Gr2, Gr2_l, Gr2_u, filepath)
+    greens_plot(r, Gr, Gr_l, Gr_u, r2, Gr2, Gr2_l, Gr2_u, cambr, cambgr, filepath)
 
 
 def main():
