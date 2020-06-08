@@ -71,7 +71,7 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     norm = 1./tk[0] ##first non-zero sdss spline value
     cambnorm = 1.e-7
     f = plt.figure()
-    plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data')
+    plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data + analytical model')
     plt.fill_between(ks, tk_l*norm,
             tk_u*norm, color='black', alpha=0.1,
             interpolate=True)
