@@ -20,7 +20,6 @@ def tik_lsq_reg(A_,b_,l_,x0=0):
     return sol, res
 
 def add_thickness_lss_effect(k_, pk_, dklss_):
-    # FIXME ? should there be a - in the exp?
     return pk_*np.exp(k_/dklss_)
 
 def calc_pbb(k, pk, lss, lambdaa = 1.8e-2):

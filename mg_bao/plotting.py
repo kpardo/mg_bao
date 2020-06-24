@@ -99,7 +99,7 @@ def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath
     #plt.fill_between(rs, Gr_l/Gr_l[0], Gr_u/Gr_u[0], color='black', alpha=0.1)
     plt.plot(rs2, Gr2*norm2, c='black', linewidth=2, linestyle='dotted',
             label='Data - constant value extrapolation')
-    plt.plot(cambr, cambgr/cambgr[0], c=cs[0], linewidth=2, linestyle='dotted', label='CAMB - DM only')
+#    plt.plot(cambr, cambgr/cambgr[0], c=cs[0], linewidth=2, linestyle='dotted', label='CAMB - DM only')
     #plt.fill_between(rs2, Gr2_l*norm2, Gr2_u*norm2, color=cs[0], alpha=0.1)
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
