@@ -9,6 +9,7 @@ from datetime import datetime
 
 from mg_bao.convenience import *
 from mg_bao.constants import *
+from mg_bao.paths import RESULTSDIR
 
 ## define functions
 def tik_lsq_reg(A_,b_,l_,x0=0):
@@ -33,7 +34,7 @@ def calc_pbb(k, pk, lss, lambdaa = 1.8e-2):
 
 def get_pbb():
     ## load data
-    planck = pd.read_csv('../results/data_products/pkee.dat')
+    planck = pd.read_csv(RESULTSDIR+'data_products/pkee.dat')
     planckk = planck['k'].to_numpy()
     pkee = planck['pkee'].to_numpy()
     pkee_u = planck['pkee_u'].to_numpy()
@@ -47,6 +48,6 @@ def get_pbb():
     ## save results
     results = np.array([planckk, pk_z1100, pk_z1100_l, pk_z1100_u]).T
     table = pd.DataFrame(results, columns=['k', 'pbz1100', 'pbz1100_u', 'pbz1100_l'])
-    filepath = '../results/data_products/pb_z1100.dat'
+    filepath = RESULTSDIR+'data_products/pb_z1100.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))

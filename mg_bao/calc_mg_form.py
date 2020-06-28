@@ -9,20 +9,21 @@ from hankel import SymmetricFourierTransform, get_h
 
 from mg_bao.constants import *
 from mg_bao.convenience import *
+from mg_bao.paths import DATADIR, RESULTSDIR
 
 def import_powerspectra(lerr = False, uerr = False, err=False):
     ## import all powerspectra
-    camb = pd.read_csv('../results/data_products/camb_pk.dat')
+    camb = pd.read_csv(RESULTSDIR+'data_products/camb_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
     cambpkz1100 = camb['pkz1100'].to_numpy()
 
-    sdssk, __, sdsspk, sdsspk_err  = np.loadtxt('../data/Beutler_2016_BAO/Beutleretal_pk_monopole_DR12_NGC_z1_postrecon_120.dat', unpack=True)
+    sdssk, __, sdsspk, sdsspk_err  = np.loadtxt(DATADIR+'Beutler_2016_BAO/Beutleretal_pk_monopole_DR12_NGC_z1_postrecon_120.dat', unpack=True)
     sdssk *= boss_h
     sdsspk *= boss_h
     sdsspk_err *= boss_h
 
-    planck = pd.read_csv('../results/data_products/pb_z1100.dat')
+    planck = pd.read_csv(RESULTSDIR+'data_products/pb_z1100.dat')
     planckk = planck['k'].to_numpy()
     pk_z1100 = planck['pbz1100'].to_numpy()
     pk_z1100_u = planck['pbz1100_u'].to_numpy()
@@ -79,7 +80,7 @@ def make_tk():
             log10planck_spline_u, log10planck_spline_l, sdsserr_spline)
     results = np.array([ks, tk, tk_l, tk_u]).T
     table = pd.DataFrame(results, columns=['k', 'Tk', 'Tk_l', 'Tk_u'])
-    filepath = '../results/data_products/transfer.dat'
+    filepath = RESULTSDIR+'data_products/transfer.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 
@@ -129,7 +130,7 @@ def make_greens(ext='zeros'):
     Gr_u = ft.transform(tk_u,r, ret_err=False, inverse=True)
 
     ## get CAMB green's function
-    camb = pd.read_csv('../results/data_products/cambdm_pk.dat')
+    camb = pd.read_csv(RESULTSDIR+'data_products/cambdm_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
     cambpkz1100 = camb['pkz1100'].to_numpy()
@@ -143,13 +144,13 @@ def make_greens(ext='zeros'):
     ## save data
     results = np.array([r, Gr, Gr_l, Gr_u]).T
     table = pd.DataFrame(results, columns=['r', 'Gr', 'Gr_l', 'Gr_u'])
-    filepath = '../results/data_products/greens_'+ext+'.dat'
+    filepath = RESULTSDIR+'data_products/greens_'+ext+'.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 
     results2 = np.array([cambr, cambGr]).T
-    table = pd.DataFrame(results2, columns=['r','Gr']) 
-    filepath = '../results/data_products/cambgreens.dat'
+    table = pd.DataFrame(results2, columns=['r','Gr'])
+    filepath = RESULTSDIR+'data_products/cambgreens.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 

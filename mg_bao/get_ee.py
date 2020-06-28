@@ -8,11 +8,12 @@ from datetime import datetime
 
 from mg_bao.constants import eta_star
 from mg_bao.convenience import prange
+from mg_bao.paths import DATADIR, RESULTSDIR
 
 def make_pkee():
     ## load data
-    planckl, planckdl, lerr, herr = np.loadtxt('../data/planck_ps/COM_PowerSpect_CMB-EE-full_R3.01.txt', unpack=True)
-    actl, actcl, acterr = np.loadtxt('../data/act_ps/cl_cmb_ee.dat', unpack=True)
+    planckl, planckdl, lerr, herr = np.loadtxt(DATADIR+'planck_ps/COM_PowerSpect_CMB-EE-full_R3.01.txt', unpack=True)
+    actl, actcl, acterr = np.loadtxt(DATADIR+'act_ps/cl_cmb_ee.dat', unpack=True)
 
     ## change planck data to cl from dl
     planckcl = planckdl/(planckl*(planckl+1))*2*np.pi
@@ -51,7 +52,7 @@ def make_pkee():
     ## print to file
     results = np.array([planckk, pkee, pkee_u, pkee_l]).T
     table = pd.DataFrame(results, columns=['k', 'pkee', 'pkee_u', 'pkee_l'])
-    filepath = '../results/data_products/pkee.dat'
+    filepath = RESULTSDIR+'data_products/pkee.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 

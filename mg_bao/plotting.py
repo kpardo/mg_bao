@@ -68,7 +68,7 @@ def pk_plot(planckk, pkz1100, pkz1100yerr, sdssk, sdsspk, sdsspk_err, cambk,
     savefig(f, figpath, writepdf=True)
 
 def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
-    norm = 1./tk[0] ##first non-zero sdss spline value
+    norm = 1./tk[0] ##first non-zero tk spline value
     cambnorm = 1.e-7
     f = plt.figure()
     plt.plot(ks, tk*norm, c='black', linewidth=2, label='Data + analytical model')
@@ -86,7 +86,7 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     savefig(f, filepath, writepdf=True)
 
 def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath):
-    Gr = gaussian_filter1d(Gr, 2) ## smooth
+    Gr = gaussian_filter1d(Gr, 2) ## smooth them a bit.
     Gr_l = gaussian_filter1d(Gr_l, 2)
     Gr_u = gaussian_filter1d(Gr_u, 2)
     norm = 1./Gr[0]
@@ -96,11 +96,8 @@ def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath
     norm2 = 1./Gr2[0]
     f = plt.figure()
     plt.plot(rs, Gr*norm, c='black', linewidth=2, label='Data - no extrapolation')
-    #plt.fill_between(rs, Gr_l/Gr_l[0], Gr_u/Gr_u[0], color='black', alpha=0.1)
     plt.plot(rs2, Gr2*norm2, c='black', linewidth=2, linestyle='dotted',
             label='Data - constant value extrapolation')
-#    plt.plot(cambr, cambgr/cambgr[0], c=cs[0], linewidth=2, linestyle='dotted', label='CAMB - DM only')
-    #plt.fill_between(rs2, Gr2_l*norm2, Gr2_u*norm2, color=cs[0], alpha=0.1)
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
     plt.ylabel(r'$\mathcal{G}(r)$')
