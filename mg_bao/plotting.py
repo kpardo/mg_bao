@@ -19,7 +19,7 @@ sns.set_context("paper")
 sns.set_style('ticks')
 sns.set_palette('colorblind')
 figparams = {
-        'text.latex.preamble': [r'\usepackage{amsmath}'],
+        'text.latex.preamble': [r'\usepackage{amsmath}', r'\boldmath'],
         'text.usetex':True,
         'axes.labelsize':20.,
         'xtick.labelsize':16,
