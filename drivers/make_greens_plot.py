@@ -13,6 +13,7 @@ from mg_bao.calc_mg_form import make_greens
 from mg_bao.plotting import pk_plot
 from mg_bao.constants import boss_h, RERUN_ANALYSIS
 from mg_bao.plotting import greens_plot
+from mg_bao.paths import RESULTSDIR
 
 
 
@@ -28,22 +29,22 @@ def rerun_analysis():
 def make_plot():
     ## first load data
     print('making plot')
-    greens= pd.read_csv('../results/data_products/greens_zeros.dat')
+    greens= pd.read_csv(RESULTSDIR+'data_products/greens_zeros.dat')
     r = greens['r']
     Gr = greens['Gr']
     Gr_l = greens['Gr_l']
     Gr_u = greens['Gr_u']
-    greens2 = pd.read_csv('../results/data_products/greens_const.dat')
+    greens2 = pd.read_csv(RESULTSDIR+'data_products/greens_const.dat')
     r2 = greens2['r']
     Gr2 = greens2['Gr']
     Gr2_l = greens2['Gr_l']
     Gr2_u = greens2['Gr_u']
 
-    cambgreens = pd.read_csv('../results/data_products/cambgreens.dat')
+    cambgreens = pd.read_csv(RESULTSDIR+'data_products/cambgreens.dat')
     cambr = cambgreens['r']
     cambgr = cambgreens['Gr']
     ## make figure
-    filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/greens.png'
+    filepath = RESULTSDIR+'greens.png'
     greens_plot(r, Gr, Gr_l, Gr_u, r2, Gr2, Gr2_l, Gr2_u, cambr, cambgr, filepath)
 
 

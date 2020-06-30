@@ -82,7 +82,7 @@ def tk_plot(ks, tk, tk_l, tk_u, cambk, camb_pkdiv, filepath):
     plt.xlim([0.009, 0.105])
     plt.ylim([1e-1, 1e5])
     plt.xlabel(r'$k~[\rm{Mpc}^{-1}]$')
-    plt.ylabel(r'$T^2(k)$');
+    plt.ylabel(r'$\hat{T}^2(k)$');
     savefig(f, filepath, writepdf=True)
 
 def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath):
@@ -100,11 +100,7 @@ def greens_plot(rs, Gr,Gr_l, Gr_u, rs2, Gr2,Gr2_l, Gr2_u, cambr, cambgr,filepath
             label='Data - constant value extrapolation')
     plt.legend()
     plt.xlabel(r'$r~[\rm{Mpc}]$')
-    plt.ylabel(r'$\mathcal{G}(r)$')
+    plt.ylabel(r'$\hat{\mathcal{G}}(r)$')
     plt.ylim([-0.3, 1.1])
     plt.xlim([0., 300.])
-
-    plt.legend()
-    plt.xlabel(r'$r~[\rm{Mpc}]$')
-    plt.ylabel(r'$\mathcal{G}(r)$')
     savefig(f, filepath, writepdf=True)

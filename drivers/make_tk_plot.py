@@ -14,6 +14,7 @@ from mg_bao.calc_mg_form import make_tk
 from mg_bao.plotting import pk_plot
 from mg_bao.constants import boss_h, RERUN_ANALYSIS
 from mg_bao.plotting import tk_plot
+from mg_bao.paths import RESULTSDIR
 
 
 
@@ -27,19 +28,19 @@ def rerun_analysis():
 def make_plot():
     ## first load data
     print('making plot')
-    camb = pd.read_csv('../results/data_products/camb_pk.dat')
+    camb = pd.read_csv(RESULTSDIR+'data_products/camb_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
     cambpkz1100 = camb['pkz1100'].to_numpy()
     cambpkdiv = cambpkz0/cambpkz1100
-    tkdat = pd.read_csv('../results/data_products/transfer.dat')
+    tkdat = pd.read_csv(RESULTSDIR+'data_products/transfer.dat')
     k = tkdat['k']
     tk = tkdat['Tk']
     tk_l = tkdat['Tk_l']
     tk_u = tkdat['Tk_u']
 
     ## make figure
-    filepath = '/Users/kpardo/Dropbox/Apps/Overleaf/bao/transfer.png'
+    filepath = RESULTSDIR+'transfer.png'
     tk_plot(k, tk, tk_l, tk_u, cambk, cambpkdiv, filepath)
 
 
