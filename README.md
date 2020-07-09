@@ -1,8 +1,7 @@
 # mg_bao
 
 This respository contains all of the scripts needed to perform the analysis and
-create the plots from Pardo & Spergel (2020) (link will be included when
-available).
+create the plots from [Pardo & Spergel (2020)](https://ui.adsabs.harvard.edu/abs/2020arXiv200700555P/abstract).
 
 The [`mg_bao/`](mg_bao/) directory contains the main calculation scripts.
 
