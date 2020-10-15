@@ -6,10 +6,13 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline
 from datetime import datetime
 from hankel import SymmetricFourierTransform, get_h
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
 from mg_bao.constants import *
 from mg_bao.convenience import *
 from mg_bao.paths import DATADIR, RESULTSDIR
+from mg_bao.plotting import tk_for_ref
 
 def import_powerspectra(lerr = False, uerr = False, err=False):
     ## import all powerspectra
@@ -93,64 +96,67 @@ def create_r_array(ks):
     r = np.linspace(xmin, xmax, numx)
     return r
 
-def make_greens(ext='zeros'):
-    ## get powerspectra to create spline again
-    planckk, pk_z1100, sdssk, sdsspk, sdsserr  = import_powerspectra(err=True)
-    __, pk_z1100_l, ___, sdsspk_l  = import_powerspectra(lerr=True)
-    __, pk_z1100_u, ___, sdsspk_u  = import_powerspectra(uerr=True)
-    pk_z1100_u[pk_z1100_u == 0] = 1.e-32 ## make it some tiny number so no nan.
-    ## create spline for tk
-    sdss_spline = UnivariateSpline(sdssk, sdsspk, s=0., ext='zeros')
-    sdss_spline_l = UnivariateSpline(sdssk, sdsspk_l, s=0., ext='zeros')
-    sdss_spline_u = UnivariateSpline(sdssk, sdsspk_u, s=0., ext='zeros')
-    sdsserr_spline = UnivariateSpline(sdssk, sdsserr, s=0., ext='zeros')
-    ## use log10 of planckpk for spline because of large fluctuations
-    log10planck_spline = UnivariateSpline(planckk, np.log10(pk_z1100), s=0., ext='zeros')
-    log10planck_spline_l = UnivariateSpline(planckk, np.log10(pk_z1100_l), s=0., ext='zeros')
-    log10planck_spline_u = UnivariateSpline(planckk, np.log10(pk_z1100_u), s=0., ext='zeros')
-    ks = np.linspace((lstar+0.5)/eta_star, np.max(sdssk), 1000)
-    tk = UnivariateSpline(ks,
-            np.sqrt(sdss_spline(ks)/10**log10planck_spline(ks)),s=0.,
-            ext=ext)
-    tk_u_arr, tk_l_arr = get_tk_err(ks,log10planck_spline, sdss_spline,
-            log10planck_spline_u, log10planck_spline_l, sdsserr_spline)
-    tk_u = UnivariateSpline(ks, tk_u_arr, s=0., ext=ext)
-    tk_l = UnivariateSpline(ks, tk_l_arr, s=0., ext=ext)
-    ## do the fourier transform with the help of Hankel
-    ## first create the r array using sdss k -- more conservative
-    r = create_r_array(sdssk)
-    ## find optimal parameters for hankel to use
-    deltah, err, N = get_h(tk, nu=3, K=[np.min(r), np.max(r)],cls=SymmetricFourierTransform, inverse=True)
-    if np.any(np.abs(err) > 1.e-2):
-        print(err)
-        print("The error on the FT is high (> 1\%). You should check this!")
-    ft = SymmetricFourierTransform(ndim=3, N = N, h = deltah)
-    Gr = ft.transform(tk,r, ret_err=False, inverse=True)
-    Gr_l = ft.transform(tk_l,r, ret_err=False, inverse=True)
-    Gr_u = ft.transform(tk_u,r, ret_err=False, inverse=True)
+def get_gp_cov(k, tk, norm, cambspline):
+    X = k[:, np.newaxis]
+    y = np.log10(tk*norm) - cambspline(k)
+    kernel = RBF() +WhiteKernel()
+    gp = GaussianProcessRegressor(kernel=kernel, alpha=2., normalize_y=False,
+            n_restarts_optimizer=50).fit(X,y)
+    X_ = np.logspace(-5, 1, 2000)
+    y_mean, y_cov = gp.predict(X_[:, np.newaxis], return_cov=True)
+    return X_, y_mean, y_cov
 
-    ## get CAMB green's function
-    camb = pd.read_csv(RESULTSDIR+'data_products/cambdm_pk.dat')
+def splinefortransform(x, logspline, maxk=5.):
+    s = 10**logspline(x)
+    s[x>maxk] = 0.
+    return s
+
+def do_FT(r, k_, logkfunc):
+    logsamplespline = UnivariateSpline(k_, logkfunc, s=0.,ext='zeros')
+    samplespline = lambda x: np.sqrt(splinefortransform(x, logsamplespline))
+    deltah, result, N = get_h(samplespline, nu=3, K=[np.min(r), np.max(r)],
+            cls=SymmetricFourierTransform, inverse=True, maxiter=25)
+    ft = SymmetricFourierTransform(ndim=3, N = N, h = deltah)
+    Gr = ft.transform(samplespline,r, ret_err=False, inverse=True)
+    return Gr
+
+def make_greens():
+    ## get tk
+    try:
+        tkdat = pd.read_csv(RESULTSDIR+'data_products/transfer.dat')
+        k = tkdat['k']
+        tk = tkdat['Tk']
+    except:
+        make_tk()
+    tknorm = 1./tk[0] ##first non-zero tk spline value
+    ## get sdssk for rarray later.
+    sdssk, __, __, __  = np.loadtxt(DATADIR+'Beutler_2016_BAO/Beutleretal_pk_monopole_DR12_NGC_z1_postrecon_120.dat', unpack=True)
+    ## get CAMB tk for gp
+    camb = pd.read_csv(RESULTSDIR+'data_products/camb_pk.dat')
     cambk = camb['k'].to_numpy()
     cambpkz0 = camb['pkz0'].to_numpy()
     cambpkz1100 = camb['pkz1100'].to_numpy()
     cambpkdiv = cambpkz0/cambpkz1100
-    cambtk = UnivariateSpline(cambk, cambpkdiv, s=0., ext='zeros')
-    cambr = create_r_array(cambk)
-    ft = SymmetricFourierTransform(ndim=3, N = 500, h = 0.01)
-    cambGr = ft.transform(cambtk,cambr, ret_err=False, inverse=True)
-
+    cambnorm = 1.e-7 ## sets it about equal to tk so we can splice
+    cambspline = UnivariateSpline(cambk, np.log10(cambpkdiv*cambnorm), s=0.)
+    ## get gp results -- these are in log space
+    X_, y_mean, y_cov = get_gp_cov(k, tk, tknorm, cambspline)
+    ## make tk plot to check gp results
+    tk_for_ref(k[:, np.newaxis],y_mean, y_cov, tk, tknorm, X_, cambspline)
+    ## get real space values
+    kforgreen = np.linspace(np.min(sdssk), np.max(sdssk), 100)
+    r = create_r_array(kforgreen)
+    ##thin out because noise.
+    ## do transform 
+    Gr = do_FT(r, X_, y_mean + cambspline(X_))
+    Gr_l = do_FT(r, X_, y_mean - np.sqrt(np.diag(y_cov)) + cambspline(X_))
+    Gr_u = do_FT(r, X_, y_mean + np.sqrt(np.diag(y_cov)) + cambspline(X_))
 
     ## save data
     results = np.array([r, Gr, Gr_l, Gr_u]).T
     table = pd.DataFrame(results, columns=['r', 'Gr', 'Gr_l', 'Gr_u'])
-    filepath = RESULTSDIR+'data_products/greens_'+ext+'.dat'
+    filepath = RESULTSDIR+'data_products/greens.dat'
     table.to_csv(filepath, index=False)
     print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 
-    results2 = np.array([cambr, cambGr]).T
-    table = pd.DataFrame(results2, columns=['r','Gr'])
-    filepath = RESULTSDIR+'data_products/cambgreens.dat'
-    table.to_csv(filepath, index=False)
-    print('{}: made {}'.format(datetime.now().isoformat(), filepath))
 
