@@ -11,7 +11,6 @@ of the plots and perform the analyses.
 The [`data/`](data/) directory contains the data I used for the analysis (see the paper
 for all references).
 
-To run the scripts for yourself, create a 'results' directory and a
-`data_products` directory within it. Make sure that the `RERUN_ANALYSIS` flag
+To run the scripts for yourself, make sure that the `RERUN_ANALYSIS` flag
 within [`mg_bao.constants`](mg_bao/constants.py) is set to `True`. 
 Then, run the [`plot_all.sh`](drivers/plot_all.sh) shell script.
