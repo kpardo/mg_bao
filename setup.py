@@ -69,7 +69,7 @@ setup(
         'mg_bao',
     ],
     install_requires=INSTALL_REQUIRES,
-    tests_require=['pytest==3.8.2',],
+    tests_require=['pytest==9.0.3',],
     cmdclass={'test':PyTest},
     include_package_data=True,
     zip_safe=False,
